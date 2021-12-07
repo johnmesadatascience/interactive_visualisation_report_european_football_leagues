@@ -1,0 +1,241 @@
+---
+title:  "Europa League"
+output: 
+  flexdashboard::flex_dashboard:
+    social: menu
+    source_code: embed 
+runtime: shiny
+---
+
+```{r global, include=FALSE}
+# load data in 'global' chunk so it can be shared by all users of the dashboard
+library(flexdashboard)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(tidyr)
+library(forcats)
+library(highcharter)
+library(tinytex)
+```
+
+
+```{r}
+soccer <- read.csv("C:/Users/JMesa/Downloads/soccer1.csv")
+
+# This dataset contains statistical summary data of each game of the different teams from 6 European Football Leagues:
+# The English League, The Spanish League, The German League, The Russian League, The Italian League and the French League. This dataset has 24 columns and 570 rows and is from Kaggle.
+```
+
+
+```{r}
+# The purpose of this visualisation is to know more in detail the characteristics of the teams from the 6 European Football Leagues, that is, which teams create more chances to score goals, which teams are the best winners, losers, which teams play offensive football, which teams play high level of defensive intensity and the best scorer from the Spanish League.
+```
+
+
+```{r}
+soccer = soccer %>%
+  rename(
+  league = X,
+  year = X.1
+  )
+```
+
+
+
+xG Teams
+=======================================================================
+
+### Teams that create more chances to score goals 2014-2018
+
+```{r}
+xG_teams <- soccer %>%
+  group_by(team) %>%
+  summarise(xG_sum=sum(xG)) %>%
+  mutate(team = as_factor(team)) %>%
+  arrange(desc(xG_sum)) %>%
+  head(xG_sum,n=5) %>%
+    ggplot(aes(team, xG_sum,fill=team)) + geom_bar(stat='identity',alpha=0.6)+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1,vjust = 1),
+      legend.position = "none",plot.title = element_text(size = 15))+
+  scale_fill_manual(values = c("red","red","lightblue","blue","white"))+labs(title="Teams with more expected goals (2014 - 2018)",
+    subtitle = "",
+    x = "Teams ", 
+    y = "xG")
+
+```
+
+
+
+
+```{r}
+ggplotly(xG_teams)
+```
+
+
+
+
+
+### Average xG for each team per year
+
+```{r}
+avg_xG <- round(mean(soccer$xG),0)
+```
+
+
+```{r}
+valueBox(avg_xG,
+         icon = "fa-comments",
+         color = "primary")
+```
+
+
+
+
+
+
+
+Offensive Teams
+=======================================================================
+
+### Teams that play offensive football 2014-2018
+
+
+```{r}
+offensive_teams_bar <- soccer %>%
+  group_by(team) %>%
+  summarise(deep_sum=sum(deep)) %>%
+  mutate(team = as_factor(team)) %>%
+  arrange(desc(deep_sum)) %>%
+  head(deep_sum,n=10) %>%
+  hchart(type = "column",
+         hcaes(x = team, y= deep_sum))
+
+offensive_teams_bar
+```
+
+
+
+
+Winners
+======================================================================
+
+### Teams that have more wins 2014-2018
+
+
+```{r}
+winner_teams_treemap <- soccer %>%
+  group_by(team) %>%
+  summarise(wins_sum=sum(wins)) %>%
+  mutate(team = as_factor(team)) %>%
+  arrange(wins_sum) %>%
+hchart(type = "treemap",
+       hcaes(x = team, value= wins_sum, color = wins_sum))
+
+winner_teams_treemap
+```
+
+
+
+
+Losers
+======================================================================
+
+### Teams that have more loses 2014-2018
+
+
+```{r}
+loser_teams_bar <- soccer %>%
+  group_by(team) %>%
+  summarise(loses_sum=sum(loses)) %>%
+  mutate(team = as_factor(team)) %>%
+  arrange(desc(loses_sum)) %>%
+  head(loses_sum,n=20) %>%
+  hchart(type = "bar",
+         hcaes(x = team, y= loses_sum))
+
+loser_teams_bar
+```
+
+
+
+
+xGA Teams
+=====================================================================
+
+### Teams that have more expected goals against than goals against 2014-2018
+
+
+```{r}
+xGA_teams <- soccer %>%
+  group_by(team) %>%
+  summarise(total_xGA = sum(xGA_diff)) %>%
+  arrange(desc(total_xGA)) %>%
+  mutate(team = as_factor(team)) %>%
+  head(loses_sum,n=20) %>%
+    ggplot(aes(team, total_xGA, fill=team)) + geom_col()+
+  theme(axis.text.x = element_text(angle = 45,hjust = 1,vjust = 1),
+      legend.position = "none",plot.title = element_text(size = 15))+
+  scale_fill_manual(values = rainbow(n=160))+labs(title="Teams with more xGA than missed (2014 - 2018)",
+    subtitle = "",
+    x = "Teams ", 
+    y = "expected goals against")
+        
+```
+
+
+
+```{r}
+ggplotly(xGA_teams)
+
+```
+
+
+
+
+PPDA Teams
+=====================================================================
+
+### Teams that play high level of defensive intensity (Pressure) 2014-2018
+
+
+```{r}
+PPDA_teams <- soccer %>%
+  group_by(team) %>%
+  summarise(ppda_sum=sum(ppda_coef)) %>%
+  mutate(team = as_factor(team)) %>%
+  arrange(ppda_sum)
+  
+
+```
+
+
+
+```{r}
+DT::datatable(PPDA_teams,
+              options = list(
+                  pageLength = 200
+              ))
+```
+
+
+
+### Average PPDA for each team pear year
+
+```{r}
+gauge(round(mean(soccer$ppda_coef),0), 
+      min = min(soccer$ppda_coef),
+      max = max(soccer$ppda_coef),
+      symbol = ' PPDA',
+      gaugeSectors(
+        danger = c(18,70),
+        warning = c(8,17),
+        success = c(1,7)
+      ))
+```
+
+
+
+
+
+
